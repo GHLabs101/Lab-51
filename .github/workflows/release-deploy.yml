@@ -1,0 +1,72 @@
+name: Lab 51 – Release + Deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'          # fires on v1.0.0, v2.3.1, etc.
+
+permissions:
+  contents: write         # create release
+  id-token: write         # (needed for OIDC if you wire real AWS later)
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        id: create_rel
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Automated release created by workflow.
+            Artifacts will be deployed by the next job.
+          draft: false
+          prerelease: false
+
+      # Explanation:
+      # - Tag push triggers this job.
+      # - create-release writes Release metadata to the repo.
+      # - Outputs (like upload_url) are available if needed downstream.
+
+  deploy:
+    needs: create-release
+    runs-on: ubuntu-latest
+    # To make it safe, gate on a manual approval environment (optional):
+    environment: 
+      name: production
+      url: https://example.com  # placeholder
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Simulate AWS login
+        run: |
+          echo "🔐 Would configure AWS CLI here with OIDC or stored secrets"
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
+          echo "AWS_REGION=${{ secrets.AWS_REGION }}"
+
+      - name: Simulate artifact build
+        run: |
+          echo "🛠️  Building production artefact..."
+          zip -r dist.zip .
+
+      - name: Simulate upload to S3
+        run: |
+          echo "☁️  Would run: aws s3 cp dist.zip s3://my-bucket/releases/${{ github.ref_name }}/"
+          echo "Deploy step skipped – no real AWS credentials."
+
+      - name: Simulate ECS service update
+        run: |
+          echo "🚀 Would run: aws ecs update-service --cluster myCluster --service mySvc --force-new-deployment"
+          echo "Deployment simulated only."
+
+      # Explanation after code block:
+      # Each step echoes what a real command would be.
+      # Replace 'echo …' lines with real AWS CLI commands once credentials are set.
